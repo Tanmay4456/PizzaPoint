@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>User Profile</title>
+  <style>
+    body{
+      font-family: Arial;
+      background:#fff7f0;
+      text-align:center;
+      padding:50px;
+    }
+    .card{
+      background:white;
+      padding:30px;
+      border-radius:12px;
+      width:300px;
+      margin:auto;
+      box-shadow:0 4px 10px rgba(0,0,0,0.1);
+    }
+    button{
+      padding:10px 20px;
+      margin-top:15px;
+      border:none;
+      border-radius:8px;
+      background:#ff6b6b;
+      color:white;
+      cursor:pointer;
+    }
+  </style>
+</head>
+<body>
+
+<div class="card">
+  <h2>👤 Profile</h2>
+
+  <p id="name"></p>
+  <p id="email"></p>
+
+  <button onclick="logout()">Logout</button>
+</div>
+
+<script>
+
+const user = localStorage.getItem("user");
+
+if(!user){
+  alert("Please login first");
+  window.location.href = "/";
+}
+
+document.getElementById("email").innerText = "Email: " + user;
+
+// If you later store name, you can show it too
+
+function logout(){
+  localStorage.removeItem("token");
+  localStorage.removeItem("user");
+  window.location.href = "/";
+}
+
+</script>
+
+</body>
+</html>

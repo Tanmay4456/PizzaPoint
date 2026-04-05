@@ -1,0 +1,555 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>The Pizza Point</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;800&display=swap" rel="stylesheet">
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:Poppins;background:#fff7f0}
+
+header{
+background:#ff6b6b;color:white;
+padding:15px 20px;
+display:flex;justify-content:space-between;align-items:center
+}
+
+.logo{font-size:22px;font-weight:800}
+.nav-right{display:flex;gap:15px;align-items:center}
+.search-bar{padding:10px;border:none;border-radius:8px;width:200px}
+
+.btn{
+background:#fff;color:#ff6b6b;border:none;
+padding:8px 15px;border-radius:8px;cursor:pointer;font-weight:600
+}
+
+.hero{
+background:linear-gradient(90deg,#ffecd2,#fcb69f);
+padding:60px 20px;text-align:center
+}
+
+.menu-grid{
+display:grid;
+grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
+gap:20px;padding:20px
+}
+
+.card{
+background:white;border-radius:16px;overflow:hidden;
+box-shadow:0 10px 25px rgba(0,0,0,0.08);
+transition:.3s
+}
+
+.card:hover{transform:translateY(-5px)}
+.card img{width:100%;height:180px;object-fit:cover}
+.card-body{padding:15px}
+.price{color:#ff6b6b;font-weight:700}
+
+.card .btn{
+background:#ff6b6b;color:white;width:100%;margin-top:10px
+}
+
+#cartPanel{
+position:fixed;top:0;right:-400px;width:350px;height:100%;
+background:white;box-shadow:-5px 0 20px rgba(0,0,0,0.2);
+padding:20px;transition:0.3s;z-index:1000;display:flex;flex-direction:column
+}
+
+.modal{
+position:fixed;top:0;left:0;width:100%;height:100%;
+background:rgba(0,0,0,0.5);
+display:none;justify-content:center;align-items:center;
+z-index:2000;
+}
+
+.modal-box{
+background:white;padding:20px;border-radius:12px;
+width:300px;position:relative
+}
+
+.modal input{width:100%;margin:5px 0;padding:8px}
+
+#dropdown{
+display:none;
+position:absolute;
+top:35px;
+right:0;
+background:white;
+color:black;
+padding:10px;
+border-radius:8px;
+box-shadow:0 5px 15px rgba(0,0,0,0.2)
+}
+</style>
+</head>
+
+<body>
+
+<header>
+<div class="logo">🍕 Pizza Point</div>
+
+<div class="nav-right">
+<input class="search-bar" id="search" placeholder="Search pizza" oninput="searchPizza()">
+
+<div style="position:relative;cursor:pointer" onclick="toggleCart()">
+🛒
+<span id="cartCount" style="position:absolute;top:-8px;right:-10px;background:red;color:white;border-radius:50%;padding:2px 6px;font-size:12px;">0</span>
+</div>
+
+<div id="authButtons">
+<button class="btn" onclick="openLogin()">Login</button>
+<button class="btn" onclick="openSignup()">Signup</button>
+<button class="btn" onclick="openOrders()">My Orders</button>
+</div>
+
+<div id="userMenu" style="display:none;position:relative;cursor:pointer">
+👤 <span id="userName"></span> ▼
+<div id="dropdown">
+<p onclick="logout()" style="cursor:pointer">Logout</p>
+</div>
+</div>
+</div>
+</header>
+
+<div class="hero">
+<h1>Delicious Pizza Delivered Fast</h1>
+<p>Order now & get exciting offers 🍕</p>
+<div style="text-align:center;margin:20px;">
+  <button class="btn" onclick="filterCategory('all')">All</button>
+  <button class="btn" onclick="filterCategory('pizza')">🍕 Pizzas</button>
+  <button class="btn" onclick="filterCategory('drink')">🥤 Drinks</button>
+</div>
+</div>
+
+<div class="menu-grid" id="menu"></div>
+
+<div id="cartPanel">
+<div style="display:flex;justify-content:space-between">
+<h2>Your Cart</h2>
+<span onclick="toggleCart()">❌</span>
+</div>
+
+<div id="cartItems" style="flex:1;overflow:auto"></div>
+<h3 id="cartTotal">Total: ₹0</h3>
+<div id="orderStatus" style="padding:10px;color:green;font-weight:600"></div>
+<button class="btn" onclick="checkout()">Checkout</button>
+</div>
+
+<!-- AUTH MODAL -->
+<div id="authModal" class="modal">
+<div class="modal-box">
+<span onclick="closeAuth()" style="position:absolute;right:10px;top:5px">❌</span>
+
+<div id="loginBox">
+<h3>Login</h3>
+<input id="loginEmail" placeholder="Email">
+<input id="loginPass" type="password" placeholder="Password">
+<button class="btn" onclick="login()">Login</button>
+<p onclick="showSignup()">New user? Signup</p>
+</div>
+
+<div id="signupBox" style="display:none">
+<h3>Signup</h3>
+<input id="signupName" placeholder="Name">
+<input id="signupEmail" placeholder="Email">
+<input id="signupPass" type="password" placeholder="Password">
+<button class="btn" onclick="signup()">Signup</button>
+<p onclick="showLogin()">Already have account? Login</p>
+</div>
+
+</div>
+</div>
+
+<!-- PAYMENT -->
+<div id="paymentPage" class="modal">
+<div class="modal-box">
+<span onclick="closePayment()" style="position:absolute;right:10px;top:5px">❌</span>
+<h3>Payment</h3>
+
+<select id="paymentMethod">
+<option>UPI</option>
+<option>Card</option>
+<option>Cash on Delivery</option>
+</select>
+
+<div id="cardDetails" style="display:none">
+<input placeholder="Card Number">
+<input placeholder="Expiry">
+<input placeholder="CVV">
+</div>
+
+<button class="btn" onclick="payNow()">Pay Now</button>
+</div>
+</div>
+
+<!-- ✅ FIXED MODALS -->
+<div id="ordersModal" class="modal">
+<div class="modal-box" style="width:400px">
+<span onclick="closeOrders()">❌</span>
+<h3>My Orders</h3>
+<div id="ordersList"></div>
+</div>
+</div>
+
+<div id="checkoutModal" class="modal">
+<div class="modal-box" style="width:350px">
+<span onclick="closeCheckout()">❌</span>
+<h3>Delivery Details</h3>
+
+<input id="name" placeholder="Full Name">
+<input id="phone" placeholder="Phone Number">
+<input id="address" placeholder="Delivery Address">
+
+<button class="btn" onclick="goToPayment()">Continue →</button>
+</div>
+</div>
+
+<script>
+const PRODUCTS = [
+/* 🍕 PIZZAS */
+{id:1,name:'Margherita',price:199,img:'pizza1.jpg',category:'pizza'},
+{id:2,name:'Pepperoni',price:299,img:'pizza2.jpg',category:'pizza'},
+{id:3,name:'Farmhouse',price:249,img:'pizza3.jpg',category:'pizza'},
+{id:4,name:'Paneer Pizza',price:329,img:'pizza4.jpg',category:'pizza'},
+{id:5,name:'Veg Extravaganza',price:349,img:'pizza5.jpg',category:'pizza'},
+{id:6,name:'Cheese Burst',price:399,img:'pizza6.jpg',category:'pizza'},
+{id:7,name:'Mexican Green Wave',price:279,img:'pizza7.jpg',category:'pizza'},
+{id:8,name:'Deluxe Veggie',price:299,img:'pizza8.jpg',category:'pizza'},
+{id:9,name:'Spicy Paneer',price:339,img:'pizza9.jpg',category:'pizza'},
+
+/* 🥤 DRINKS */
+{id:10,name:'Coca Cola',price:60,img:'drink1.jpg',category:'drink'},
+{id:11,name:'Pepsi',price:60,img:'drink2.jpg',category:'drink'},
+{id:12,name:'Sprite',price:55,img:'drink3.jpg',category:'drink'},
+{id:13,name:'Fanta',price:55,img:'drink4.jpg',category:'drink'}
+];
+
+let cart=[];
+
+function searchPizza(){
+const value=document.getElementById("search").value.toLowerCase();
+
+const filtered=PRODUCTS.filter(p =>
+  p.name.toLowerCase().includes(value) ||
+  p.category.toLowerCase().includes(value)
+);
+
+render(filtered);
+}
+
+function render(list=PRODUCTS){
+const menu=document.getElementById("menu");
+menu.innerHTML="";
+
+list.forEach(p=>{
+menu.innerHTML+=`<div class='card'>
+<img src='${p.img}' onerror="this.src='https://via.placeholder.com/400x300'">
+<div class='card-body'>
+<h3>${p.name}</h3>
+<p style="font-size:12px;color:gray">${p.category.toUpperCase()}</p>
+<p class='price'>₹${p.price}</p>
+<button class='btn' onclick='addToCart(${JSON.stringify(p)})'>Add to Cart</button>
+</div></div>`;
+});
+}
+
+/* AUTH */
+function openLogin(){authModal.style.display="flex";showLogin();}
+function openSignup(){authModal.style.display="flex";showSignup();}
+function closeAuth(){authModal.style.display="none";}
+
+function showSignup(){
+loginBox.style.display="none";
+signupBox.style.display="block";
+}
+
+function showLogin(){
+loginBox.style.display="block";
+signupBox.style.display="none";
+}
+
+function updateAuthUI(){
+const user=JSON.parse(localStorage.getItem("user"));
+if(user){
+authButtons.style.display="none";
+userMenu.style.display="block";
+userName.innerText=user.name;
+}else{
+authButtons.style.display="block";
+userMenu.style.display="none";
+}
+}
+
+async function login(){
+const res=await fetch("https://github.com/Tanmay4456/PizzaPoint.git",{
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify({email:loginEmail.value,password:loginPass.value})
+});
+const user=await res.json();
+
+if(user.email){
+localStorage.setItem("user",JSON.stringify(user));
+updateAuthUI();
+closeAuth();
+}else alert("Login failed");
+}
+
+function closePayment(){
+document.getElementById("paymentPage").style.display="none";
+}
+
+async function signup(){
+const res=await fetch("https://github.com/Tanmay4456/PizzaPoint.git",{
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify({name:signupName.value,email:signupEmail.value,password:signupPass.value})
+});
+const user = await res.json();
+localStorage.setItem("user", JSON.stringify(user));
+updateAuthUI();
+closeAuth();
+}
+
+function logout(){
+localStorage.removeItem("user");
+updateAuthUI();
+}
+
+userMenu.onclick=function(){
+dropdown.style.display = dropdown.style.display==="block" ? "none" : "block";
+};
+
+window.onclick = function(e){
+if(!userMenu.contains(e.target)){
+dropdown.style.display = "none";
+}
+};
+
+function toggleCart(){
+const p=document.getElementById("cartPanel");
+p.style.right = (p.style.right==="0px") ? "-400px" : "0px";
+}
+
+function addToCart(p){
+const user=localStorage.getItem("user");
+if(!user){alert("Login first");return;}
+cart.push(p);
+updateCartUI();
+toggleCart();
+}
+
+function updateCartUI(){
+let total=0;
+cartItems.innerHTML="";
+cart.forEach((i,idx)=>{
+total+=i.price;
+cartItems.innerHTML+=`${i.name} - ₹${i.price} <button onclick='removeItem(${idx})'>❌</button><br>`;
+});
+cartTotal.innerText="Total: ₹"+total;
+cartCount.innerText=cart.length;
+}
+
+function removeItem(i){
+cart.splice(i,1);
+updateCartUI();
+}
+
+function checkout(){
+  if(cart.length === 0){
+    alert("Cart empty");
+    return;
+  }
+
+  document.getElementById("checkoutModal").style.display = "flex";
+}
+/* PAYMENT */
+async function payNow(){
+
+const userData = JSON.parse(localStorage.getItem("orderUser"));
+
+if(!userData){
+  alert("Please enter delivery details");
+  return;
+}
+
+const name = userData.name;
+const phone = userData.phone;
+const address = userData.address;
+
+if (!name || !phone || !address) {
+  alert("Please fill all details");
+  return;
+}
+
+let total=0;
+cart.forEach(i=>total+=i.price);
+
+const method = document.getElementById("paymentMethod").value;
+
+/* COD */
+if(method === "Cash on Delivery"){
+
+const res = await fetch("https://github.com/Tanmay4456/PizzaPoint.git", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    items: cart,
+    total: total,
+    name: name,
+phone: phone,
+address: address,
+email: JSON.parse(localStorage.getItem("user")).email,
+    paymentType: method
+  })
+});
+
+const data = await res.json();
+localStorage.setItem("orderId", data.orderId);
+alert("Order placed successfully (Cash on Delivery) 🍕");
+
+cart=[];
+updateCartUI();
+closePayment();
+return;
+}
+
+/* ONLINE PAYMENT */
+const res = await fetch("https://github.com/Tanmay4456/PizzaPoint.git/create-order",{
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify({amount:total})
+});
+
+const order = await res.json();
+
+const options = {
+key:"rzp_test_SVoRqIH183p7hu",
+amount:order.amount,
+currency:"INR",
+order_id:order.id,
+
+handler: async function () {
+
+const res = await fetch("https://github.com/Tanmay4456/PizzaPoint.git/place-order", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    items: cart,
+    total: total,
+   name: name,
+phone: phone,
+address: address,
+email: JSON.parse(localStorage.getItem("user")).email,
+    paymentType: method
+  })
+});
+
+const data = await res.json();
+localStorage.setItem("orderId", data.orderId);
+alert("Payment Successful & Order Placed 🎉");
+
+cart=[];
+updateCartUI();
+closePayment();
+}
+};
+
+new Razorpay(options).open();
+}
+
+window.onload=function(){
+render();
+updateAuthUI();
+
+paymentMethod.addEventListener("change",function(){
+cardDetails.style.display=this.value==="Card"?"block":"none";
+});
+setInterval(checkStatus, 3000);
+}
+function openOrders(){
+  document.getElementById("ordersModal").style.display = "flex";
+  loadOrders();
+}
+
+function closeOrders(){
+  document.getElementById("ordersModal").style.display = "none";
+}
+
+async function loadOrders(){
+  const user = JSON.parse(localStorage.getItem("user"));
+  if(!user){ alert("Login first"); return; }
+
+  const res = await fetch("https://github.com/Tanmay4456/PizzaPoint.git/my-orders/" + user.email);
+  const orders = await res.json();
+
+  const list = document.getElementById("ordersList");
+  list.innerHTML = "";
+
+  if(orders.length === 0){
+    list.innerHTML = "No orders yet";
+    return;
+  }
+
+  orders.forEach(o=>{
+    list.innerHTML += `
+      <div style="border-bottom:1px solid #ccc;padding:10px">
+        <b>Items:</b> ${o.items.map(i=>i.name).join(", ")} <br>
+        <b>Total:</b> ₹${o.total} <br>
+        <b>Status:</b> ${o.status}
+      </div>
+    `;
+  });
+}
+async function checkStatus(){
+  const orderId = localStorage.getItem("orderId");
+  if(!orderId) return;
+
+  const res = await fetch("https://github.com/Tanmay4456/PizzaPoint.git/get-order/" + orderId);
+  const data = await res.json();
+
+  document.getElementById("orderStatus").innerText =
+    "Order Status: " + data.status;
+}
+function filterCategory(cat){
+  if(cat === 'all'){
+    render(PRODUCTS);
+  } else {
+    const filtered = PRODUCTS.filter(p => p.category === cat);
+    render(filtered);
+  }
+}
+
+function closeCheckout(){
+  document.getElementById("checkoutModal").style.display = "none";
+}
+
+function goToPayment(){
+  const name = document.getElementById("name").value;
+  const phone = document.getElementById("phone").value;
+  const address = document.getElementById("address").value;
+
+  if (!name || !phone || !address) {
+    alert("Please fill all details");
+    return;
+  }
+
+  // save temporarily
+  localStorage.setItem("orderUser", JSON.stringify({
+    name, phone, address
+  }));
+
+  closeCheckout();
+
+  // open payment modal
+  paymentPage.style.display = "flex";
+}
+
+</script>
+
+</body>
+</html>
